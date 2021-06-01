@@ -1,1 +1,3 @@
 # PDMP-control
+
+This repository contains all code necessary to reproduce the simulation study presented in the paper ...
