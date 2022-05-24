@@ -1,0 +1,226 @@
+\documentclass[a4paper]{article}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\geometry{ hmargin=1.2cm, vmargin=3cm }
+\title{Evaluation of iterative grid construction by Monte Carlo estimation of value function}
+\author{}
+\date{}
+
+\begin{document}
+\pagestyle{empty}
+\maketitle
+
+
+
+
+<<Library, echo=FALSE>>=
+library("xtable")
+source("Scripts-Paper/xtable_printbold.R")
+wd=("R/")
+source(paste(wd,"Parameters.R",sep=""))
+source(paste(wd,"SimulationsFunctions.R",sep=""))
+source(paste(wd,"Costs.R",sep=""))
+source(paste(wd,"FunctionEvalStrategies.R",sep=""))
+Nsim=500
+flink="id"
+trunc=FALSE
+setseed=T
+
+cost="int"
+if (setseed) seed=12345 else seed=sample(1:1000000,1)
+Visits=c("Choice","15 days","60 days")
+VisMode=c("15 days","60 days")
+load(paste("RData/GrilleX1.RData",sep=""))
+
+@
+
+
+<<GrilleL2-1, eval=T, echo=FALSE>>=
+distance="L2"
+grille=184
+load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+
+Strat1s<-NULL
+CVs=1; CVi=1
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat1s<-rbind(Strat1s,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C1=c(NA,paste("Grille", grille),NA)
+Strat1s=cbind(C1,Visits,Strat1s)
+
+
+@
+<<GrilleL2-2, eval=T, echo=FALSE>>=
+distance="L2"
+grille=722
+
+		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+
+Strat2s<-NULL
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat2s<-rbind(Strat2s,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C2=c(NA,paste("Grille", grille),NA)
+Strat2s=cbind(C2,Visits,Strat2s)
+
+@
+<<GrilleL2-3, eval=T,  echo=FALSE>>=
+
+distance="L2"
+grille=989
+
+		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+
+Strat3s<-NULL
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat3s<-rbind(Strat3s,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C3=c(NA,paste("Grille", grille),NA)
+Strat3s=cbind(C3,Visits,Strat3s)
+
+
+@
+<<GrilleLm-1, eval=T, echo=FALSE>>=
+
+distance="Lm"
+grille=184
+load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+Gdist<-apply(Gamma,2,GammaDist);
+
+Strat1ms<-NULL
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat1ms<-rbind(Strat1ms,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C1m=c(NA,paste("Grille", grille),NA)
+Strat1ms=cbind(C1m,Visits,Strat1ms)
+
+
+
+@
+<<GrilleLm-2, eval=T, echo=FALSE>>=
+
+distance="Lm"
+grille=709
+load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+Gdist<-apply(Gamma,2,GammaDist);
+
+Strat2ms<-NULL
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat2ms<-rbind(Strat2ms,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C2m=c(NA,paste("Grille", grille),NA)
+Strat2ms=cbind(C2m,Visits,Strat2ms)
+
+@
+<<GrilleLm-3, eval=T, echo=FALSE>>=
+
+distance="Lm"
+grille=1021
+load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+Gdist<-apply(Gamma,2,GammaDist);
+
+Strat3ms<-NULL
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat3ms<-rbind(Strat3ms,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+
+}
+
+C3m=c(NA,paste("Grille", grille),NA)
+Strat3ms=cbind(C3m,Visits,Strat3ms)
+
+
+
+@
+<<Object, echo=FALSE>>=
+
+
+save(Strat1s,Strat2s,Strat3s,Strat1ms,Strat2ms,Strat3ms,file="NG-123456.RData")
+
+
+
+
+
+Strats=data.frame(rbind(Strat1s,Strat2s,Strat3s))
+for (i in c(3,4,6,8,10,11,12,13,14)) 
+{	
+	Strats[,i]<-as.numeric(as.character(Strats[,i])); 
+}
+
+colnames(Strats)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err","Treatment error","trajectory length","time length","Nb death")
+
+Stratsm=data.frame(rbind(Strat1ms,Strat2ms,Strat3ms))
+for (i in c(3,4,6,8,10,11,12,13,14)) 
+{	
+	Stratsm[,i]<-as.numeric(as.character(Stratsm[,i])); 
+}
+
+colnames(Stratsm)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err","Treatment error","trajectory length","time length","Nb death")
+
+STR=cbind(Strats,Stratsm)
+
+
+hlines=c(-1,0,0,seq(3,nrow(Strats),by=3))
+
+
+@
+\centering
+<<xtable1,echo=FALSE,results=tex>>=
+printbold(xtable(STR[,-c(6,7,10,11,12,13,14,15,16,20,21,24,25,26,27,28,29)], align=c("rr|r|cclcl|cclcl"),caption="Grids iteration with distances L2 and Lm"),
+  booktabs=TRUE,
+  include.rownames = FALSE,
+  include.colnames = TRUE,
+  each="column",
+  max=FALSE,
+  hline.after=hlines)
+
+
+@ 
+
+Estimation on \Sexpr{Nsim} simulations. \\
+Death cost : \Sexpr{MI}.
+\clearpage
+@
+
+@
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,168 @@
+\documentclass[a4paper]{article}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\geometry{ hmargin=1.2cm, vmargin=3cm }
+\title{Comparison of different strategies by Monte Carlo estimation of value function}
+\author{}
+\date{}
+
+\begin{document}
+\pagestyle{empty}
+\maketitle
+
+
+
+
+<<Library, echo=FALSE>>=
+library("xtable")
+source("Scripts-Paper/xtable_printbold.R")
+wd=("R/")
+source(paste(wd,"Parameters.R",sep=""))
+source(paste(wd,"SimulationsFunctions.R",sep=""))
+source(paste(wd,"Costs.R",sep=""))
+source(paste(wd,"FunctionEvalStrategies.R",sep=""))
+Nsim=500
+flink="id"
+trunc=FALSE
+setseed=T
+if (setseed) seed=2121212111 else seed=sample(1:1000000,1)
+cost="int"
+
+
+@
+
+
+
+<<Our strategy,eval=T, echo=FALSE>>=
+Visits=c("Choice","15 days","60 days")
+
+## Our strategy - full R
+
+distance="Lm"
+grille=1021
+
+
+		load(paste("RData/GrilleX1.RData",sep=""))
+		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+		Gdist<-apply(Gamma,2,GammaDist)
+
+Strat1sm<-NULL
+CVs=1; CVi=1
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat1sm<-rbind(Strat1sm,OurStrat(Nsim,step,cost=cost,distance=distance,seed=seed))
+
+}
+
+C1=c(NA,paste("Grid", grille),NA)
+Strat1sm=cbind(C1,Visits,Strat1sm)
+
+
+
+Strati=data.frame(Strat1sm)
+
+for (i in c(3,4,6,8,10:14)) { Strati[,i]<-as.numeric(as.character(Strati[,i]))}
+
+
+Strati<-Strati[,1:10]
+
+colnames(Strati)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err")
+
+
+
+
+
+@
+<<Filter, eval=T,echo=FALSE>>=
+VisMode=c("15 days","60 days")
+CM=c(NA,"Filter")
+
+Mode1<-ModeStrat(Nsim,15)
+Mode1<-rbind(Mode1,ModeStrat(Nsim,60))
+Mode1=cbind(CM,VisMode,Mode1)
+for (i in c(4,8,11,15,17:19)) Mode1[,i]<-as.numeric(as.character(Mode1[,i]))
+
+
+Modei<-data.frame(Mode1[,c(1:2,10:17)])
+
+
+colnames(Modei)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err")
+
+@
+<<SeeStrat, eval=T, echo=FALSE>>=
+
+SeeS15<-SeeStrat(Nsim,15)
+SeeS60<-SeeStrat(Nsim,60)
+
+
+
+@
+<<RealStrat, eval=T, echo=FALSE>>=
+
+RealS<-RealStrat(Nsim)
+RealS<-c("Standard strategy",NA,RealS)
+for (i in c(4,11,17:19)) RealS[i]<-as.numeric(as.character(RealS[i]))
+
+
+RealSi<-data.frame(t(RealS[c(1:2,10:17)]))
+
+colnames(RealSi)<-c("","Visites","vchap0","réel intégré","(sd)","filtré intégré","(sd)","filtré réel intégré","(sd)","total err")
+
+
+@
+<<AllStrat, eval=T,echo=FALSE>>=
+
+
+AllStrati=data.frame(rbind(Strati,Modei,RealSi))
+
+
+li=seq(3,nrow(Strat1sm),by=3)
+hlines=c(-1,0,0,li,max(li)+2,max(li)+4,max(li)+5)
+
+colnames(AllStrati)<-c("","Visites","vchap0","réel intégré","(sd)","filtré intégré","(sd)","filtré réel intégré","(sd)","total err")
+
+AllPrint=AllStrati[,-c(3,6,7,10)]
+AllPrint=rbind(AllPrint,c("See All",'15 days',SeeS15[3:4],NA,NA),c(NA,'60 days',SeeS60[3:4],NA,NA))
+AllPrint=AllPrint[c(1:5,7:8,6),]
+
+@
+
+
+\centering
+<<tableI,echo=FALSE,eval=T,results=tex>>=
+printbold(xtable(AllPrint, align=c("rr|r|clcl"),caption="Strategies comparison"),
+  booktabs=TRUE,
+  include.rownames = FALSE,
+  include.colnames = TRUE,
+  each="column",
+  max=FALSE,
+  hline.after=hlines)
+
+@ 
+
+Estimation on \Sexpr{Nsim} simulations. \\
+Death cost : \Sexpr{MI}.
+
+
+\clearpage
+@
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

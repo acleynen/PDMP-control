@@ -1,0 +1,114 @@
+\documentclass[a4paper]{article}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage[utf8]{inputenc}
+\geometry{ hmargin=1.2cm, vmargin=3cm }
+\title{Comparison of using projected filter or estimated filter as current filter to update belief}
+\author{}
+\date{}
+
+\begin{document}
+\pagestyle{empty}
+\maketitle
+
+
+
+
+<<Library, echo=FALSE>>=
+library("xtable")
+source("Scripts-Paper/xtable_printbold.R")
+wd=("R/")
+source(paste(wd,"Parameters.R",sep=""))
+source(paste(wd,"SimulationsFunctions.R",sep=""))
+source(paste(wd,"Costs.R",sep=""))
+source(paste(wd,"FunctionEvalStrategies.R",sep=""))
+Nsim=500
+flink="id"
+trunc=FALSE
+setseed=T
+distance="Lm"
+cost="int"
+if (setseed) seed=12345 else seed=sample(1:1000000,1)
+
+
+@
+
+
+<<Grille1, eval=T, echo=FALSE>>=
+Visits=c("Choix","15 jours","60 jours")
+VisMode=c("15 jours","60 jours")
+
+grille=1021
+
+		load(paste("RData/GrilleX1.RData",sep=""))
+		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
+Gdist<-apply(Gamma,2,GammaDist)
+
+Strat1bar<-NULL
+Strat1chap<-NULL
+CVs=1; CVi=1
+for (step in c("all","15","60"))
+{
+	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+	Strat1bar<-rbind(Strat1bar,OurStrat(Nsim,step,distance=distance,cost=cost,seed=seed))
+	Strat1chap<-rbind(Strat1chap,OurStratchap(Nsim,step,distance=distance,cost=cost,seed=seed))
+}
+
+C1=c(NA,paste("Grille", grille),NA)
+Strat1bar=cbind(C1,Visits,Strat1bar)
+Strat1chap=cbind(C1,Visits,Strat1chap)
+
+@
+<<Object, echo=FALSE>>=
+
+for (i in c(3,4,6,8,10,11,12,13,14)) 
+{	
+	Strat1bar[,i]<-as.numeric(as.character(Strat1bar[,i])); 
+	Strat1chap[,i]<-as.numeric(as.character(Strat1chap[,i])); 
+}
+
+colnames(Strat1bar)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err","Treatment error","trajectory length","time length","Nb death")
+colnames(Strat1chap)<-c("","Visits","vchap0","Real cost","(sd)","projeted filtered cost","(sd)","real filtered cost","(sd)","total err","Treatment error","trajectory length","time length","Nb death")
+
+
+STR=cbind(Strat1bar,Strat1chap)
+
+
+
+@
+\centering
+<<xtable1,echo=FALSE,results=tex>>=
+printbold(xtable(STR[,-c(6,7,10,11,12,13,14,15,16,17,20,21,24,25,26,27,28,29)], align=c("rr|r|cclcl|clcl"),caption="Comparison of current filter usage"),
+  booktabs=TRUE,
+  include.rownames = FALSE,
+  include.colnames = TRUE,
+  each="column",
+  max=FALSE)
+
+@ 
+
+Estimation on \Sexpr{Nsim} simulations. \\
+Death cost : \Sexpr{MI}.
+\clearpage
+@
+
+@
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
