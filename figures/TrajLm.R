@@ -1,23 +1,31 @@
-#set.seed(14)
-seed=12345678
-setwd('R')
-source('SimulationsFunctions.R')
-source('Parameters.R')
-source('Costs.R')
+#set.seed(25)
+seed=1111
+wd=("R/")
+source(paste(wd,"Parameters.R",sep=""))
+source(paste(wd,"SimulationsFunctions.R",sep=""))
+source(paste(wd,"Costs.R",sep=""))
+
 
 trunc=FALSE
 
-###############################  Grille 1 #########################################""
+Nsim=100
+flink="id"
+trunc=FALSE
+setseed=T
 distance="Lm"
-grille=642
-		load(paste("RData/XGrid.RData",sep=""))
+
+###############################  Grille 1 #########################################""
+grille=184
+
+		load(paste("RData/GrilleX1.RData",sep=""))
 		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
-Gdist<-apply(Gamma,2,GammaDist)
 
 step="all"
 CVs=1; CVi=1;
-	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
-################## Coût Simple
+load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))		
+Gdist<-apply(Gamma,2,GammaDist)
+			
+################## Coût intégré
 
 
 	set.seed(seed)
@@ -25,7 +33,7 @@ CVs=1; CVi=1;
 	Strat=list(dec=rep("non",N),vis=rep(0,N))
 	yn=0
 	Psin=as.matrix(c(1,rep(0,nOmega-2)))
-	decision<-Decsimple[1,1]
+	decision<-Decint[1,1]
 	Strat$dec[1]<-Decisions[decision,1]
 	Strat$vis[1]<-Decisions[decision,2]		
 	RealTime=0
@@ -85,7 +93,7 @@ while(RealTime<H)
 		indvisit=RealTime/delta
 		if (RealTime<H)
 		{
-			decision<-Decsimple[indvisit+1,indGamma]
+			decision<-Decint[indvisit+1,indGamma]
 			Strat$dec[n+1]<-Decisions[decision,1]
 			Strat$vis[n+1]<-Decisions[decision,2]
 		} else 
@@ -100,18 +108,18 @@ while(RealTime<H)
 
 	ll=which(xn$realtime==H)
 	if (sum(xn$mode==100)>0) {ll=which(xn$mode==100)}
-	Creal=round(RCostReal(xn$traj[1:ll],xn$mode[1:ll],Strat$dec[1:ll],Strat$vis[1:ll],"simple"),0)
-	Cfilt=round(RCostFilt(IndexGamma,Strat$dec[1:ll],Strat$vis[1:ll],"simple"),0)
+	Creal=round(RCostReal(xn$traj[1:ll],xn$mode[1:ll],Strat$dec[1:ll],Strat$vis[1:ll],"int"),0)
+	Cfilt=round(RCostFilt(IndexGamma,Strat$dec[1:ll],Strat$vis[1:ll],"int"),0)
 
 
 
-pdf(paste("figure/Lm-",grille,".pdf",sep=""),width=15,height=10)
+
 par(mfrow=c(5,1),mar=c(2,5,2,2))
-plot(xn$realtime[1:ll],xn$traj[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="non","black",ifelse(Strat$dec[1:ll]=="a","green","red")),pch=ifelse(xn$mode[1:ll]==0,1,ifelse(xn$mode[1:ll]==1,2,3)),xlab="time (days)",ylab="real processus value",lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
+plot(xn$realtime[1:ll],xn$traj[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="b","red",ifelse(Strat$dec[1:ll]=="a","green","black")),pch=ifelse(xn$mode[1:ll]==0,1,ifelse(xn$mode[1:ll]==1,2,3)),xlab="time (days)",ylab="real process value",lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
 legend("top",legend=paste('Grid:',grille),bty="n",cex=2)
 legend("topleft",legend=c("healthy","disease 1","disease 2"),pch=c(1:3),cex=2)
 legend("topright",legend=c(paste("Real cost:",Creal),paste('Filtered cost:',Cfilt)),cex=2)
-plot(xn$realtime[1:ll],yn[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="non","black",ifelse(Strat$dec[1:ll]=="a","green","red")),xlab="time (days)",ylab="observed data", lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
+plot(xn$realtime[1:ll],yn[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="b","red",ifelse(Strat$dec[1:ll]=="a","green","black")),xlab="time (days)",ylab="observed data", lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
 legend("topleft",legend=c("no treatment","treatment a","treatment b"),col=c("black","green","red"),cex=2,lwd=2)
 plot(xn$realtime[1:ll],ModesEst[1:ll,1],type="l",col="black",ylim=c(0,1),xlab="time (days)",ylab="estimated mode" ,lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H))
 legend("topleft",legend=c("mode 0","mode 1","mode 2"),col=c("black","green","red"),cex=2,lwd=2)
@@ -121,23 +129,24 @@ plot(xn$realtime[1:ll],Modes[1:ll,1],type="l",col="black",ylim=c(0,1),xlab="time
 legend("topleft",legend=c("mode 0","mode 1","mode 2"),col=c("black","green","red"),cex=2,lwd=2)
 lines(xn$realtime[1:ll],Modes[1:ll,2],col="green",lwd=2,type="b")
 lines(xn$realtime[1:ll],Modes[1:ll,3],col="red",lwd=2,type="b")
-plot(xn$realtime[1:ll],Dist,type="b",ylab="Dist to proj" ,lwd=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,1.1))
+plot(xn$realtime[1:ll],Dist,type="b",ylab="Dist to proj" ,lwd=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,1.5))
 lines(xn$realtime[1:ll],D2,col="blue",lwd=2,type="b")
-abline(h=0.6,col="grey")
-dev.off()
+legend("topleft",legend=c("L2 distance","Lm distance"),col=c("black","blue"),cex=2,lwd=2)
 
 IndexGamma
 
 ###############################  Grille 5 #########################################""
-grille=1714
-		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
-		Gdist<-apply(Gamma,2,GammaDist)
+grille=1021
 
+		load(paste("RData/GrilleX1.RData",sep=""))
+		load(paste("RData/ThetaGrid_",grille,"-",distance,".RData",sep="") )
 
 step="all"
 CVs=1; CVi=1;
-	load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
-################## Coût Simple
+load(paste("RData/ProgDyn_",grille,"-",distance,"_time",step,"_CV", CVs,".RData",sep=""))				
+Gdist<-apply(Gamma,2,GammaDist)
+	
+################## Coût intégré
 
 
 	set.seed(seed)
@@ -145,7 +154,7 @@ CVs=1; CVi=1;
 	Strat=list(dec=rep("non",N),vis=rep(0,N))
 	yn=0
 	Psin=as.matrix(c(1,rep(0,nOmega-2)))
-	decision<-Decsimple[1,1]
+	decision<-Decint[1,1]
 	Strat$dec[1]<-Decisions[decision,1]
 	Strat$vis[1]<-Decisions[decision,2]		
 	RealTime=0
@@ -205,7 +214,7 @@ while(RealTime<H)
 		indvisit=RealTime/delta
 		if (RealTime<H)
 		{
-			decision<-Decsimple[indvisit+1,indGamma]
+			decision<-Decint[indvisit+1,indGamma]
 			Strat$dec[n+1]<-Decisions[decision,1]
 			Strat$vis[n+1]<-Decisions[decision,2]
 		} else 
@@ -220,19 +229,19 @@ while(RealTime<H)
 
 	ll=which(xn$realtime==H)
 	if (sum(xn$mode==100)>0) {ll=which(xn$mode==100)}
-	Creal=round(RCostReal(xn$traj[1:ll],xn$mode[1:ll],Strat$dec[1:ll],Strat$vis[1:ll],"simple"),0)
-	Cfilt=round(RCostFilt(IndexGamma,Strat$dec[1:ll],Strat$vis[1:ll],"simple"),0)
+	Creal=round(RCostReal(xn$traj[1:ll],xn$mode[1:ll],Strat$dec[1:ll],Strat$vis[1:ll],"int"),0)
+	Cfilt=round(RCostFilt(IndexGamma,Strat$dec[1:ll],Strat$vis[1:ll],"int"),0)
 
 
 
 
-pdf(paste("figure/Lm-",grille,".pdf",sep=""),width=15,height=10)
+
 par(mfrow=c(5,1),mar=c(2,5,2,2))
-plot(xn$realtime[1:ll],xn$traj[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="non","black",ifelse(Strat$dec[1:ll]=="a","green","red")),pch=ifelse(xn$mode[1:ll]==0,1,ifelse(xn$mode[1:ll]==1,2,3)),xlab="time (days)",ylab="real processus value",lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
+plot(xn$realtime[1:ll],xn$traj[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="b","red",ifelse(Strat$dec[1:ll]=="a","green","black")),pch=ifelse(xn$mode[1:ll]==0,1,ifelse(xn$mode[1:ll]==1,2,3)),xlab="time (days)",ylab="real process value",lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
 legend("top",legend=paste('Grid:',grille),bty="n",cex=2)
 legend("topleft",legend=c("healthy","disease 1","disease 2"),pch=c(1:3),cex=2)
 legend("topright",legend=c(paste("Real cost:",Creal),paste('Filtered cost:',Cfilt)),cex=2)
-plot(xn$realtime[1:ll],yn[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="non","black",ifelse(Strat$dec[1:ll]=="a","green","red")),xlab="time (days)",ylab="observed data", lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
+plot(xn$realtime[1:ll],yn[1:ll],type="b",col=ifelse(Strat$dec[1:ll]=="b","red",ifelse(Strat$dec[1:ll]=="a","green","black")),xlab="time (days)",ylab="observed data", lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,10))
 legend("topleft",legend=c("no treatment","treatment a","treatment b"),col=c("black","green","red"),cex=2,lwd=2)
 plot(xn$realtime[1:ll],ModesEst[1:ll,1],type="l",col="black",ylim=c(0,1),xlab="time (days)",ylab="estimated mode" ,lwd=2,cex=2,cex.axis=2,cex.lab=2,xlim=c(0,H))
 legend("topleft",legend=c("mode 0","mode 1","mode 2"),col=c("black","green","red"),cex=2,lwd=2)
@@ -242,12 +251,10 @@ plot(xn$realtime[1:ll],Modes[1:ll,1],type="l",col="black",ylim=c(0,1),xlab="time
 legend("topleft",legend=c("mode 0","mode 1","mode 2"),col=c("black","green","red"),cex=2,lwd=2)
 lines(xn$realtime[1:ll],Modes[1:ll,2],col="green",lwd=2,type="b")
 lines(xn$realtime[1:ll],Modes[1:ll,3],col="red",lwd=2,type="b")
-plot(xn$realtime[1:ll],Dist,type="b",ylab="Dist to proj" ,lwd=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,1.1))
+plot(xn$realtime[1:ll],Dist,type="b",ylab="Dist to proj" ,lwd=2,cex.axis=2,cex.lab=2,xlim=c(0,H),ylim=c(0,1.5))
 lines(xn$realtime[1:ll],D2,col="blue",lwd=2,type="b")
-abline(h=0.6,col="grey")
-
+legend("topleft",legend=c("L2 distance","Lm distance"),col=c("black","blue"),cex=2,lwd=2)
 
 IndexGamma
 
-dev.off()
 
