@@ -1,10 +1,15 @@
-set.seed(100100)
+set.seed(100100100)
+RNGkind("L'Ecuyer-CMRG")
 source('SimulationsFunctions.R')
 source('Parameters.R')
 load("RData/XGrid.RData")
 library(dplyr)
 library(parallel)
 library(MCMCpack)
+
+NbClusters=28
+clusterSetRNGStream(NbClusters, iseed = 123)
+
 
 # Needed arguments:
 #numadd=layer of the new grid
@@ -65,7 +70,7 @@ Restimate<-function(g)
 	return(Rtemp)		
 }
 
-L<-mclapply(1:nT,Restimate,mc.cores=28)
+L<-mclapply(1:nT,Restimate,mc.cores=NbClusters,mc.set.seed = TRUE)
 
 
 R=array(data=0,dim=c(nT,ngamma,nd))

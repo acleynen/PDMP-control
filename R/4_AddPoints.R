@@ -1,8 +1,11 @@
+RNGkind("L'Ecuyer-CMRG")
 source('SimulationsFunctions.R')
 source('Parameters.R')
 source('Costs.R')
 source('FunctionEvalStrategies.R')
 library(parallel)
+
+NbClusters=28
 
 # Needed arguments:
 #nT=size of the grid (without cemetery, nT=nOmega-1), 
@@ -22,6 +25,8 @@ version=args[5]
 distance=args[6]
 
 set.seed(numadd)
+clusterSetRNGStream(NbClusters, iseed = 12345)
+
 
 load("RData/XGrid.RData")
 load(paste("RData/ThetaGrid_",nT,"-",distance,".RData",sep=""))
@@ -120,7 +125,7 @@ SimToAdd<-function(sim)
 }
 
 
-L<-mclapply(1:nsimadd,SimToAdd,mc.cores=28)
+L<-mclapply(1:nsimadd,SimToAdd,mc.cores=NbClusters,mc.set.seed = TRUE)
 
 GammaAdd=c()
 for (i in 1:nsimadd)
@@ -128,8 +133,10 @@ for (i in 1:nsimadd)
 		GammaAdd<-cbind(GammaAdd,L[[i]])
 
 dim(GammaAdd)
-
+load(paste("RData/EvalG",nT,"-",distance,".RData",sep=""))
 GammaN=cbind(Gamma,GammaAdd)
+
+
 dim(GammaN)
 nsim=nsimadd
 thresh=threshn

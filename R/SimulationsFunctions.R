@@ -16,6 +16,39 @@ TrajExp<-function(x,t,tprime,m,j) # x= marker value at time t, tprime=time for w
 		return (D)
 }
 
+
+################
+
+
+Surv<-function(u,m) # Survival function in mode m at time u since last jump
+{
+ if (u <tau1[m])
+ 	return(exp(-nu1[m]/tau1[m]/2*u^2))
+ if (u<tau2)
+ 	return(	exp(-nu1[m]*tau1[m]/2-nu1[m]*(u-tau1[m])))
+ if (u<tau3)
+ 	return(	exp(nu1[m]*tau1[m]/2-nu1[m]*u-1/2*(nu2[m]-nu1[m])/(tau3-tau2)*(u-tau2)^2))
+ return(exp(nu1[m]*tau1[m]/2-nu1[m]*tau3-1/2*(nu2[m]-nu1[m])*(tau3-tau2)-nu2[m]*(u-tau3)))	
+}
+
+St1=c(Surv(tau1[1],1),Surv(tau1[2],2))
+St2=c(Surv(tau2,1),Surv(tau2,2))
+St3=c(Surv(tau3,1),Surv(tau3,2))
+SH=c(Surv(H,1),Surv(H,2))
+
+Sim<-function(u,m) # simulator of jump time conditional on u
+{
+	Su=Surv(u,m)
+	y=runif(1)
+	if (y*Su<St3[m])
+		return(tau3-(log(y*Su)+nu1[m]/2*(tau3+tau2-tau1[m])+nu2[m]/2*(tau3-tau2))/nu2[m]-u)
+	if (y*Su<St2[m])
+		return(	(-(tau3*nu1[m]-tau2*nu2[m])+sqrt(nu1[m]^2*(tau3^2-tau2^2) -2*tau2*nu1[m]*nu2[m]*(tau3-tau2)-2*(log(y*Su)-nu1[m]*tau1[m]/2)*(tau3-tau2)*(nu2[m]-nu1[m])))/(nu2[m]-nu1[m])-u)
+	if (y*Su<St1[m])
+		return(	tau1[m]-(log(y*Su)+nu1[m]/2*tau1[m])/nu1[m]-u)
+	return(sqrt(-2*tau1[m]/nu1[m]*log(y*Su))-u)	
+}
+
 ################ Jump time
 
 Horloge<-function(x,t,m,j) # returns next jump time, and next mode. 
@@ -23,12 +56,8 @@ Horloge<-function(x,t,m,j) # returns next jump time, and next mode.
 
 	if (m==0)
 	{
-		g1=rbinom(1,1,Pi[1])
-		g2=rbinom(1,1,Pi[2])
-		if (g1==1)
-			t1=(t^(alpha[1]+1)-log(1-runif(1))*(alpha[1]+1)/(lambda[1]^alpha[1]))^(1/(alpha[1]+1))-t else t1=rnorm(1,2000,400)
-		if (g2==1)
-			t2=(t^(alpha[2]+1)-log(1-runif(1))*(alpha[2]+1)/(lambda[2]^alpha[2]))^(1/(alpha[2]+1))-t else t2=rnorm(1,2000,400)
+		t1=Sim(t,1)
+		t2=Sim(t,2)
 		if (j=="non")
 		{
 			T=min(t1,t2)
@@ -329,7 +358,7 @@ RCostReal<-function(x,m,d,v,cost) # x marker value, m= real mode, d= treatment, 
 
 ################ Filtered cost of a trajectory
 
-RCostFilt<-function(indtheta,d,v,cost) # indtheta= vector of elemnt index in grid Gamma, d= treatment, v=next visit time, cost="simple" or "int"
+RCostFilt<-function(indtheta,d,v,cost) # indtheta= vector of elemnt index in grid Gamma, 
 {
 	L=length(indtheta)
 	if (cost=="simple")
@@ -351,6 +380,33 @@ RCostFilt<-function(indtheta,d,v,cost) # indtheta= vector of elemnt index in gri
 	}
 	return(RC)
 }
+
+
+
+################ Filtered cost of "un-projected trajectory) trajectory
+RCostFiltTraj<-function(Mattheta,d,v,cost) # Mattheta = matrix of filters,  d= treatment, v=next visit time, cost="simple" or "int"
+{
+	L=ncol(Mattheta)
+	if (cost=="simple")
+	{
+		if (sum(Mattheta[,L])==0) RC=M else RC=CVs+FinalcostthetaTraj(Mattheta[,L])
+		for (l in 1:(L-1))
+		{
+			s=c(d[l],v[l])
+			RC=RC+CVs+costsimplethetaTraj(Mattheta[,l],s)
+		}
+	} else
+	{
+		if (sum(Mattheta[,L])==0) RC=M else RC=CVi+FinalcostthetaITraj(Mattheta[,L])
+		for (l in 1:(L-1))
+		{
+			s=c(d[l],v[l])
+			RC=RC+CVi+costvaluethetaTraj(Mattheta[,l],s)
+		}
+	}
+	return(RC)
+}
+
 
 ################ Computing time spent with wrong treatment
 
